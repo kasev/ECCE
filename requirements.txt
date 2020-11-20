@@ -1,0 +1,13 @@
+pandas
+nltk
+gensim
+networkx
+scikit-learn
+
+
+plotly
+seaborn
+gspread
+gspread_dataframe
+
+sddk
