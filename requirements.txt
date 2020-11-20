@@ -3,7 +3,7 @@ nltk
 gensim
 networkx
 scikit-learn
-
+kaleido
 
 plotly
 seaborn

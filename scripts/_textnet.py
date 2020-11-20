@@ -1,3 +1,4 @@
+
 ### these should go easy
 import sys
 import pandas as pd
@@ -32,55 +33,38 @@ import plotly.graph_objs as go
 from plotly.offline import download_plotlyjs, init_notebook_mode, plot, iplot
 plotly.offline.init_notebook_mode(connected=True)
 
-# gensim parts
-from gensim import corpora
-from gensim import models
-
-### scikit-learn
-from sklearn.feature_extraction.text import CountVectorizer
-from sklearn.feature_extraction.text import TfidfVectorizer
-
-from sklearn.decomposition import TruncatedSVD 
-from sklearn.metrics.pairwise import cosine_similarity
-from sklearn.metrics.pairwise import euclidean_distances
-
 ### for network analysis
 import networkx as nx
 
 
-def construct_ego_network(source_network, term, num_of_neighbours):
-    length, path = nx.single_source_dijkstra(source_network, term, target=None, weight="distance")
-    shortest_nodes = list(length.keys())[0:num_of_neighbours+1]
-    path_values_sorted = [dict_pair[1] for dict_pair in sorted(path.items(), key=lambda pair: list(length.keys()).index(pair[0]))]
-    path_edges = []
-    for path_to_term in path_values_sorted[1:num_of_neighbours+1]:
-        path_edges.extend([tuple(sorted(bigram)) for bigram in nltk.bigrams(path_to_term)])
-    shortest_edges = list(set(path_edges))
-    ego_network = source_network.copy(as_view=False)
-    nodes_to_remove = []
-    for node in ego_network.nodes:
-        if node not in shortest_nodes:
-            nodes_to_remove.append(node)
-    for element in nodes_to_remove:
-        ego_network.remove_node(element)    
-    edges_to_remove = []
-    for edge in ego_network.edges:
-        if edge not in shortest_edges:
-            if (edge[1],edge[0]) not in shortest_edges:
-                edges_to_remove.append(edge)
-    for element in edges_to_remove:
-        ego_network.remove_edge(element[0], element[1])
-    return ego_network
-
-def extract_ego_network_data(ego_network, term):
-    ego_network_data_prec = sorted(list(ego_network.edges.data("weight")), key=lambda tup: int(tup[2]), reverse=True)
-    ego_network_data_complete = []
-    for tup in ego_network_data_prec:
-      if tup[1] == term:
-        ego_network_data_complete.append([tup[1], tup[0], int(tup[2]), round(1 / int(tup[2]), 5)])
-      else:
-        ego_network_data_complete.append([tup[0], tup[1], int(tup[2]), round(1 / int(tup[2]), 5)])
-    return ego_network_data_complete
+def network_formation_df(dataset, column, book_abbr, lexicon_size, threshold):
+    '''From a dataframe with rows corresponding to individual documents,
+    to be subsellected on the basis of author's name column, for instance'''
+    lemmata_list = dataset[book_abbr][column]
+    lemmata_list = [lemma for lemma in lemmata_list if lemma != "být"]
+    lemmata_list = [lemma for lemma in lemmata_list if lemma != "εἰμί"]
+    lexicon = [word_tuple[0] for word_tuple in nltk.FreqDist(lemmata_list).most_common(lexicon_size)]
+    bigrams_list = []
+    for bigram in nltk.bigrams([lemma for lemma in lemmata_list if lemma != "být"]):
+      if ((bigram[0] in lexicon) & (bigram[1] in lexicon)):
+        if bigram[0] != bigram[1]:
+          bigrams_list.append(tuple(sorted(bigram)))
+    bigrams_counts = list((collections.Counter(bigrams_list)).items())
+    bigrams_counts = sorted(bigrams_counts, key=lambda x: x[1], reverse=True)
+    ### create a NetworkX object
+    G = nx.Graph()
+    G.clear()
+    ### form the network from tuples of this form: (node1, node2, number of co-occurrences / lenght of the document)
+    G.add_weighted_edges_from(np.array([(bigram_count[0][0], bigram_count[0][1],  int(bigram_count[1])) for bigram_count in bigrams_counts if bigram_count[1] >= threshold]))
+    ### add edges attributes 
+    for (u, v, wt) in G.edges.data('weight'):
+        G[u][v]["weight"] = int(wt)
+    total_weight = sum([int(n) for n in nx.get_edge_attributes(G, "weight").values()])
+    for (u, v) in G.edges:
+        G[u][v]["norm_weight"] = round((G[u][v]["weight"] / total_weight), 5)
+        G[u][v]["distance"] = round(1 / (G[u][v]["weight"]), 5)
+        G[u][v]["norm_distance"] = round(1 / (G[u][v]["norm_weight"] ), 5)
+    return G
 
 def network_from_lemmata_list(lemmata_list, lexicon_size, threshold):
     '''From a list of words'''
@@ -108,44 +92,37 @@ def network_from_lemmata_list(lemmata_list, lexicon_size, threshold):
         G[u][v]["distance"] = round(1 / (G[u][v]["weight"]), 5)
         G[u][v]["norm_distance"] = round(1 / (G[u][v]["norm_weight"] ), 5)
     return G
-
-def network_from_sentences(sentences, weight_threshold=0.1):
-    vocabulary =  list(set([word for sent in sentences for word in sent]))
-    bow = CountVectorizer(vocabulary=vocabulary)
-    bow_term2doc = bow.fit_transform([" ".join(doc) for doc in sentences]) ### run the model
-    term2term_bow = (bow_term2doc.T * bow_term2doc)
-    G = nx.from_numpy_matrix(term2term_bow.todense()) # from_pandas_adjacency()
-    vocab_dict = dict(zip(range(len(vocabulary)), vocabulary))
-    G = nx.relabel_nodes(G, vocab_dict)
-    edges_to_remove = []
-    for edge in G.edges:
-        if edge[0] == edge[1]:
-            edges_to_remove.append(edge)
-    for element in edges_to_remove:
-        G.remove_edge(element[0], element[1])
+  
+def network_by_author(dataset, column, book_abbr, lexicon_size, threshold):
+    '''From a dataframe with rows corresponding to individual documents,
+    to be subsellected on the basis of author's name column, for instance'''
+    works = dataset[dataset["author"]==book_abbr][column].tolist()
+    works_merged = [item for sublist in works for item in sublist]
+    lexicon = [word_tuple[0] for word_tuple in nltk.FreqDist(works_merged).most_common(lexicon_size)]
+    bigrams_list = []
+    for work in works:
+      for bigram in nltk.bigrams([lemma for lemma in work if lemma != "εἰμί"]):
+        if ((bigram[0] in lexicon) & (bigram[1] in lexicon)):
+          if bigram[0] != bigram[1]:
+            bigrams_list.append(tuple(sorted(bigram)))
+    bigrams_counts = list((collections.Counter(bigrams_list)).items())
+    bigrams_counts = sorted(bigrams_counts, key=lambda x: x[1], reverse=True)
+    ### create a NetworkX object
+    G = nx.Graph()
+    G.clear()
+    ### form the network from tuples of this form: (node1, node2, number of co-occurrences / lenght of the document)
+    G.add_weighted_edges_from(np.array([(bigram_count[0][0], bigram_count[0][1],  int(bigram_count[1])) for bigram_count in bigrams_counts if bigram_count[1] >= threshold]))
+    ### add distance attribute
+    for (u, v, wt) in G.edges.data('weight'):
+        G[u][v]["weight"] = int(wt)
     total_weight = sum([int(n) for n in nx.get_edge_attributes(G, "weight").values()])
-    weights = sorted([int(n) for n in nx.get_edge_attributes(G, "weight").values()], reverse=True)
-    index_position = int(len(weights) * weight_threshold)
-    minimal_weight_value = weights[index_position]
-    edges_to_remove = []
-    for edge in G.edges:
-        if G[edge[0]][edge[1]]["weight"] < minimal_weight_value:
-            edges_to_remove.append(edge)
-    for element in edges_to_remove:
-        G.remove_edge(element[0], element[1])
-    edges_to_remove = []
-    for edge in G.edges:
-        if edge[0] == edge[1]:
-            edges_to_remove.append(edge)
-    for element in edges_to_remove:
-        G.remove_edge(element[0], element[1])
     for (u, v) in G.edges:
         G[u][v]["norm_weight"] = round((G[u][v]["weight"] / total_weight), 5)
         G[u][v]["distance"] = round(1 / (G[u][v]["weight"]), 5)
         G[u][v]["norm_distance"] = round(1 / (G[u][v]["norm_weight"] ), 5)
     return G
 
-def draw_2d_network(networkx_object):
+def draw_2d_network(networkx_object, file_name, mode):
     '''take networkX object and draw it'''
     pos_2d=nx.kamada_kawai_layout(networkx_object, weight="weight_norm")
     nx.set_node_attributes(networkx_object, pos_2d, "pos_2d")
@@ -273,8 +250,14 @@ def draw_2d_network(networkx_object):
             yaxis=dict(showgrid=False, zeroline=False, showticklabels=False)
             ))
     return fig
+    #if mode=="offline":
+    #    return iplot(fig, filename=gdrive_root +  "figures/nt_cep_networks" + file_name +".html")
+    #if mode=="online":
+    #    return iplot(fig, filename=file_name)
+    #if mode=="file":
+    #     return plot(fig, filename=gdrive_root +  "figures/nt_cep_networks/" + file_name + ".png" , auto_open=False)
 
-def draw_3d_network(networkx_object):
+def draw_3d_network(networkx_object, file_name, mode):
     '''take networkX object and draw it in 3D'''
     Edges = list(networkx_object.edges)
     L=len(Edges)
@@ -316,6 +299,7 @@ def draw_3d_network(networkx_object):
         )
 
     for Edge in Edges:
+
         x0,y0,z0 = networkx_object.nodes[Edge[0]]["pos_3d"]
         x1,y1,z1 = networkx_object.nodes[Edge[1]]["pos_3d"]
         ###trace3['x'] += [x0, x1, None]
@@ -326,6 +310,7 @@ def draw_3d_network(networkx_object):
         middle_node_trace['y'] += tuple([(y0+y1)/2])#.append((y0+y1)/2)
         middle_node_trace['z'] += tuple([(z0+z1)/2])#.append((z0+z1)/2)
         
+
     ### edge trace
     trace1=go.Scatter3d(x=Xe,
                        y=Ye,
@@ -396,4 +381,124 @@ def draw_3d_network(networkx_object):
                 ],    )
     data=[trace1, trace2, middle_node_trace]
     fig=go.Figure(data=data, layout=layout)
-    return fig
+    if mode=="offline":
+        return iplot(fig) ###, filename=file_name+".html")
+    if mode=="online":
+        return iplot(fig, filename=file_name)
+    if mode=="eps":
+        return pio.write_image(fig, "images/" + file_name + "_3D.eps" , scale=1)
+
+def ego_network_drawing_reduced(network, term, num_of_neighbours, title, mode, dimensions):
+    '''derrive ego network from a preexisting network
+    specify source term and number of neighbors
+    includes only shortest paths from the source'''
+    length, path = nx.single_source_dijkstra(network, term, target=None, weight="distance")
+    shortest_nodes = list(length.keys())[0:num_of_neighbours+1]
+    path_values_sorted = [dict_pair[1] for dict_pair in sorted(path.items(), key=lambda pair: list(length.keys()).index(pair[0]))]
+    path_edges = []
+    for path_to_term in path_values_sorted[1:num_of_neighbours+1]:
+        path_edges.extend([tuple(sorted(bigram)) for bigram in nltk.bigrams(path_to_term)])
+    shortest_edges = list(set(path_edges))
+    ego_network = network.copy(as_view=False)
+    nodes_to_remove = []
+    for node in ego_network.nodes:
+        if node not in shortest_nodes:
+            nodes_to_remove.append(node)
+    for element in nodes_to_remove:
+        ego_network.remove_node(element) 
+    edges_to_remove = []
+    for edge in ego_network.edges:
+        if edge not in shortest_edges:
+            if (edge[1],edge[0]) not in shortest_edges:
+                edges_to_remove.append(edge)
+    for element in edges_to_remove:
+        ego_network.remove_edge(element[0], element[1])
+    if dimensions == "2D":
+      return draw_2d_network(ego_network, title, mode)   
+    if dimensions == "3D":
+      return draw_3d_network(ego_network, title, mode)  
+
+      
+def ego_network_standard(dataset, column, book_abbr, term, mode, dimensions):
+    if isinstance(dataset, pd.DataFrame) == True:
+      network = network_by_author(dataset, column, book_abbr, 500, 1)
+    else: 
+      network = network_formation_df(dataset, column, book_abbr, 500, 1)
+    ego_network_drawing_reduced(network, term, 30, book_abbr + " - " + term, mode, dimensions)
+
+
+def ego_network_closest(dataset, column, book_abbr, term, num_of_neighbours):
+  if isinstance(dataset, pd.DataFrame) == True:
+      network = network_by_author(dataset, column, book_abbr, 500, 1)
+  else: 
+      network = network_formation_df(dataset, book_abbr, 500, 1)
+  length, path = nx.single_source_dijkstra(network, term, target=None, weight="distance")
+  length_sorted = sorted(length.items(), key=lambda x:x[1])[1:num_of_neighbours+1]
+  length_sorted_trans = [(translator_short(tup[0]), round(tup[1], 3)) for tup in length_sorted]
+  return length_sorted_trans
+
+def ego_network_list_from_list(lemmata_list, term, num_of_neighbours):
+  network = network_from_lemmata_list(lemmata_list, 500, 1)
+  try: 
+    length, path = nx.single_source_dijkstra(network, term, target=None, weight="distance")
+    length_sorted = sorted(length.items(), key=lambda x:x[1])[1:num_of_neighbours+1]
+    length_sorted_trans = [(tup[0], list_of_meanings(tup[0]), round(tup[1], 3)) for tup in length_sorted]
+    return length_sorted_trans
+  except:
+    return []
+
+  
+def ego_network_data(dataset, column, book_abbr, term, num_of_neighbours):
+    '''create network and ego network on its basis
+    specify source term and number of neighbors
+    includes only shortest paths from the source'''
+    if isinstance(dataset, pd.DataFrame) == True:
+      network = network_by_author(dataset, column, book_abbr, 500, 1)
+    else: 
+      network = network_formation_df(dataset, column, book_abbr, 500, 1)
+    length, path = nx.single_source_dijkstra(network, term, target=None, weight="distance")
+    shortest_nodes = list(length.keys())[0:num_of_neighbours+1]
+    path_values_sorted = [dict_pair[1] for dict_pair in sorted(path.items(), key=lambda pair: list(length.keys()).index(pair[0]))]
+    path_edges = []
+    for path_to_term in path_values_sorted[1:num_of_neighbours+1]:
+        path_edges.extend([tuple(sorted(bigram)) for bigram in nltk.bigrams(path_to_term)])
+    shortest_edges = list(set(path_edges))
+    ego_network = network.copy(as_view=False)
+    nodes_to_remove = []
+    for node in ego_network.nodes:
+        if node not in shortest_nodes:
+            nodes_to_remove.append(node)
+    for element in nodes_to_remove:
+        ego_network.remove_node(element)    
+    edges_to_remove = []
+    for edge in ego_network.edges:
+        if edge not in shortest_edges:
+            if (edge[1],edge[0]) not in shortest_edges:
+                edges_to_remove.append(edge)
+    for element in edges_to_remove:
+        ego_network.remove_edge(element[0], element[1])
+    ego_network_data_prec = sorted(list(ego_network.edges.data("weight")), key=lambda tup: int(tup[2]), reverse=True)
+    ego_network_data_complete = []
+    for tup in ego_network_data_prec:
+      if tup[1] == term:
+        ego_network_data_complete.append([tup[1], tup[0], int(tup[2]), round(1 / int(tup[2]), 5)])
+      else:
+        ego_network_data_complete.append([tup[0], tup[1], int(tup[2]), round(1 / int(tup[2]), 5)])
+    return ego_network_data_complete
+  
+
+    
+# to work with plotly in google colab environment
+def configure_plotly_browser_state():
+  import IPython
+  display(IPython.core.display.HTML('''
+        <script src="/static/components/requirejs/require.js"></script>
+        <script>
+          requirejs.config({
+            paths: {
+              base: '/static/base',
+              plotly: 'https://cdn.plot.ly/plotly-latest.min.js?noext',
+            },
+          });
+        </script>
+        '''))
