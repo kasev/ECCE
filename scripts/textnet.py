@@ -48,7 +48,7 @@ from sklearn.metrics.pairwise import euclidean_distances
 import networkx as nx
 
 
-def construct_ego_network(source_network, term, num_of_neighbours):
+def construct_ego_network(source_network, term, num_of_neighbours, reduced=True):
     length, path = nx.single_source_dijkstra(source_network, term, target=None, weight="distance")
     shortest_nodes = list(length.keys())[0:num_of_neighbours+1]
     path_values_sorted = [dict_pair[1] for dict_pair in sorted(path.items(), key=lambda pair: list(length.keys()).index(pair[0]))]
@@ -64,12 +64,13 @@ def construct_ego_network(source_network, term, num_of_neighbours):
     for element in nodes_to_remove:
         ego_network.remove_node(element)    
     edges_to_remove = []
-    for edge in ego_network.edges:
-        if edge not in shortest_edges:
-            if (edge[1],edge[0]) not in shortest_edges:
-                edges_to_remove.append(edge)
-    for element in edges_to_remove:
-        ego_network.remove_edge(element[0], element[1])
+    if reduced==True:
+        for edge in ego_network.edges:
+            if edge not in shortest_edges:
+                if (edge[1],edge[0]) not in shortest_edges:
+                    edges_to_remove.append(edge)
+        for element in edges_to_remove:
+            ego_network.remove_edge(element[0], element[1])
     return ego_network
 
 def extract_ego_network_data(ego_network, term):
@@ -82,27 +83,44 @@ def extract_ego_network_data(ego_network, term):
         ego_network_data_complete.append([tup[0], tup[1], int(tup[2]), round(1 / int(tup[2]), 5)])
     return ego_network_data_complete
 
-def network_from_lemmata_list(lemmata_list, lexicon_size, threshold):
+def network_from_lemmata(lemmata_list, weight_threshold=0.1):
     '''From a list of words'''
-    lemmata_list = [lemma for lemma in lemmata_list if lemma != "být"]
-    lemmata_list = [lemma for lemma in lemmata_list if lemma != "εἰμί"]
-    lexicon = [word_tuple[0] for word_tuple in nltk.FreqDist(lemmata_list).most_common(lexicon_size)]
+    #lemmata_list = [lemma for lemma in lemmata_list if lemma != "εἰμί"]
     bigrams_list = []
-    for bigram in nltk.bigrams([lemma for lemma in lemmata_list if lemma != "být"]):
-      if ((bigram[0] in lexicon) & (bigram[1] in lexicon)):
+    for bigram in nltk.bigrams(lemmata_list):
         if bigram[0] != bigram[1]:
-          bigrams_list.append(tuple(sorted(bigram)))
+            bigrams_list.append(tuple(sorted(bigram)))
+    G = network_object_from_bigrams(bigrams_list, weight_threshold)
+    return G
+
+def network_from_lemmata_lists(list_of_lists, weight_threshold=0.1):
+    bigrams_list = []
+    for lemmata_list in list_of_lists:
+        for bigram in nltk.bigrams(lemmata_list):
+            if bigram[0] != bigram[1]:
+                bigrams_list.append(tuple(sorted(bigram)))
+    G = network_object_from_bigrams(bigrams_list, weight_threshold)
+    return G
+
+def network_object_from_bigrams(bigrams_list, weight_threshold):
     bigrams_counts = list((collections.Counter(bigrams_list)).items())
     bigrams_counts = sorted(bigrams_counts, key=lambda x: x[1], reverse=True)
-    ### create a NetworkX object
     G = nx.Graph()
     G.clear()
-    ### form the network from tuples of this form: (node1, node2, number of co-occurrences / lenght of the document)
-    G.add_weighted_edges_from(np.array([(bigram_count[0][0], bigram_count[0][1],  int(bigram_count[1])) for bigram_count in bigrams_counts if bigram_count[1] >= threshold]))
-    ### add edges attributes 
+    G.add_weighted_edges_from(np.array([(bigram_count[0][0], bigram_count[0][1],  int(bigram_count[1])) for bigram_count in bigrams_counts]))
+        ### add edges attributes 
     for (u, v, wt) in G.edges.data('weight'):
         G[u][v]["weight"] = int(wt)
     total_weight = sum([int(n) for n in nx.get_edge_attributes(G, "weight").values()])
+    weights = sorted([int(n) for n in nx.get_edge_attributes(G, "weight").values()], reverse=True)
+    index_position = int(len(weights) * weight_threshold)
+    minimal_weight_value = weights[index_position]
+    edges_to_remove = []
+    for edge in G.edges:
+        if G[edge[0]][edge[1]]["weight"] < minimal_weight_value:
+            edges_to_remove.append(edge)
+    for element in edges_to_remove:
+        G.remove_edge(element[0], element[1])
     for (u, v) in G.edges:
         G[u][v]["norm_weight"] = round((G[u][v]["weight"] / total_weight), 5)
         G[u][v]["distance"] = round(1 / (G[u][v]["weight"]), 5)
