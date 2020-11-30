@@ -122,7 +122,7 @@ def network_object_from_bigrams(bigrams_list, weight_threshold):
     for element in edges_to_remove:
         G.remove_edge(element[0], element[1])
     for (u, v) in G.edges:
-        G[u][v]["norm_weight"] = round((G[u][v]["weight"] / total_weight), 5)
+        G[u][v]["norm_weight"] = G[u][v]["weight"] / total_weight
         G[u][v]["distance"] = round(1 / (G[u][v]["weight"]), 5)
         G[u][v]["norm_distance"] = round(1 / (G[u][v]["norm_weight"] ), 5)
     return G
