@@ -114,7 +114,7 @@ def network_object_from_bigrams(bigrams_list, weight_threshold):
     total_weight = sum([int(n) for n in nx.get_edge_attributes(G, "weight").values()])
     weights = sorted([int(n) for n in nx.get_edge_attributes(G, "weight").values()], reverse=True)
     index_position = int(len(weights) * weight_threshold)
-    minimal_weight_value = weights[index_position]
+    minimal_weight_value = 2
     edges_to_remove = []
     for edge in G.edges:
         if G[edge[0]][edge[1]]["weight"] < minimal_weight_value:
@@ -144,10 +144,10 @@ def network_from_sentences(sentences, weight_threshold=0.1):
     total_weight = sum([int(n) for n in nx.get_edge_attributes(G, "weight").values()])
     weights = sorted([int(n) for n in nx.get_edge_attributes(G, "weight").values()], reverse=True)
     index_position = int(len(weights) * weight_threshold)
-    minimal_weight_value = weights[index_position]
+    minimal_weight_value = 2
     edges_to_remove = []
     for edge in G.edges:
-        if G[edge[0]][edge[1]]["weight"] < minimal_weight_value:
+        if G[edge[0]][edge[1]]["weight"] < 2:
             edges_to_remove.append(edge)
     for element in edges_to_remove:
         G.remove_edge(element[0], element[1])
