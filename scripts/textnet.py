@@ -103,64 +103,72 @@ def network_from_lemmata_lists(list_of_lists, weight_threshold=0.1):
     return G
 
 def network_object_from_bigrams(bigrams_list, weight_threshold):
-    bigrams_counts = list((collections.Counter(bigrams_list)).items())
-    bigrams_counts = sorted(bigrams_counts, key=lambda x: x[1], reverse=True)
-    G = nx.Graph()
-    G.clear()
-    G.add_weighted_edges_from(np.array([(bigram_count[0][0], bigram_count[0][1],  int(bigram_count[1])) for bigram_count in bigrams_counts]))
-        ### add edges attributes 
-    for (u, v, wt) in G.edges.data('weight'):
-        G[u][v]["weight"] = int(wt)
-    total_weight = sum([int(n) for n in nx.get_edge_attributes(G, "weight").values()])
-    weights = sorted([int(n) for n in nx.get_edge_attributes(G, "weight").values()], reverse=True)
-    index_position = int(len(weights) * weight_threshold)
-    minimal_weight_value = 2
-    edges_to_remove = []
-    for edge in G.edges:
-        if G[edge[0]][edge[1]]["weight"] < minimal_weight_value:
-            edges_to_remove.append(edge)
-    for element in edges_to_remove:
-        G.remove_edge(element[0], element[1])
-    for (u, v) in G.edges:
-        G[u][v]["norm_weight"] = G[u][v]["weight"] / total_weight
-        G[u][v]["distance"] = round(1 / (G[u][v]["weight"]), 5)
-        G[u][v]["norm_distance"] = round(1 / (G[u][v]["norm_weight"] ), 5)
+    try:
+        bigrams_counts = list((collections.Counter(bigrams_list)).items())
+        bigrams_counts = sorted(bigrams_counts, key=lambda x: x[1], reverse=True)
+        G = nx.Graph()
+        G.clear()
+        G.add_weighted_edges_from(np.array([(bigram_count[0][0], bigram_count[0][1],  int(bigram_count[1])) for bigram_count in bigrams_counts]))
+                ### add edges attributes 
+        for (u, v, wt) in G.edges.data('weight'):
+                G[u][v]["weight"] = int(wt)
+        total_weight = sum([int(n) for n in nx.get_edge_attributes(G, "weight").values()])
+        weights = sorted([int(n) for n in nx.get_edge_attributes(G, "weight").values()], reverse=True)
+        index_position = int(len(weights) * weight_threshold)
+        minimal_weight_value = 2
+        edges_to_remove = []
+        for edge in G.edges:
+            if G[edge[0]][edge[1]]["weight"] < minimal_weight_value:
+                    edges_to_remove.append(edge)
+        for element in edges_to_remove:
+            G.remove_edge(element[0], element[1])
+        for (u, v) in G.edges:
+            G[u][v]["norm_weight"] = G[u][v]["weight"] / total_weight
+            G[u][v]["distance"] = round(1 / (G[u][v]["weight"]), 5)
+            G[u][v]["norm_distance"] = round(1 / (G[u][v]["norm_weight"] ), 5)
+    except: 
+        G = nx.Graph()
+        G.clear()
     return G
 
 def network_from_sentences(sentences, weight_threshold=0.1):
-    vocabulary =  list(set([word for sent in sentences for word in sent]))
-    bow = CountVectorizer(vocabulary=vocabulary)
-    bow_term2doc = bow.fit_transform([" ".join(doc) for doc in sentences]) ### run the model
-    term2term_bow = (bow_term2doc.T * bow_term2doc)
-    G = nx.from_numpy_matrix(term2term_bow.todense()) # from_pandas_adjacency()
-    vocab_dict = dict(zip(range(len(vocabulary)), vocabulary))
-    G = nx.relabel_nodes(G, vocab_dict)
-    edges_to_remove = []
-    for edge in G.edges:
-        if edge[0] == edge[1]:
-            edges_to_remove.append(edge)
-    for element in edges_to_remove:
-        G.remove_edge(element[0], element[1])
-    total_weight = sum([int(n) for n in nx.get_edge_attributes(G, "weight").values()])
-    weights = sorted([int(n) for n in nx.get_edge_attributes(G, "weight").values()], reverse=True)
-    index_position = int(len(weights) * weight_threshold)
-    minimal_weight_value = 2
-    edges_to_remove = []
-    for edge in G.edges:
-        if G[edge[0]][edge[1]]["weight"] < 2:
-            edges_to_remove.append(edge)
-    for element in edges_to_remove:
-        G.remove_edge(element[0], element[1])
-    edges_to_remove = []
-    for edge in G.edges:
-        if edge[0] == edge[1]:
-            edges_to_remove.append(edge)
-    for element in edges_to_remove:
-        G.remove_edge(element[0], element[1])
-    for (u, v) in G.edges:
-        G[u][v]["norm_weight"] = round((G[u][v]["weight"] / total_weight), 5)
-        G[u][v]["distance"] = round(1 / (G[u][v]["weight"]), 5)
-        G[u][v]["norm_distance"] = round(1 / (G[u][v]["norm_weight"] ), 5)
+    try:
+        vocabulary =  list(set([word for sent in sentences for word in sent]))
+        bow = CountVectorizer(vocabulary=vocabulary)
+        bow_term2doc = bow.fit_transform([" ".join(doc) for doc in sentences]) ### run the model
+        term2term_bow = (bow_term2doc.T * bow_term2doc)
+        G = nx.from_numpy_matrix(term2term_bow.todense()) # from_pandas_adjacency()
+        vocab_dict = dict(zip(range(len(vocabulary)), vocabulary))
+        G = nx.relabel_nodes(G, vocab_dict)
+        edges_to_remove = []
+        for edge in G.edges:
+            if edge[0] == edge[1]:
+                edges_to_remove.append(edge)
+        for element in edges_to_remove:
+            G.remove_edge(element[0], element[1])
+        total_weight = sum([int(n) for n in nx.get_edge_attributes(G, "weight").values()])
+        weights = sorted([int(n) for n in nx.get_edge_attributes(G, "weight").values()], reverse=True)
+        index_position = int(len(weights) * weight_threshold)
+        minimal_weight_value = 2
+        edges_to_remove = []
+        for edge in G.edges:
+            if G[edge[0]][edge[1]]["weight"] < 2:
+                edges_to_remove.append(edge)
+        for element in edges_to_remove:
+            G.remove_edge(element[0], element[1])
+        edges_to_remove = []
+        for edge in G.edges:
+            if edge[0] == edge[1]:
+                edges_to_remove.append(edge)
+        for element in edges_to_remove:
+            G.remove_edge(element[0], element[1])
+        for (u, v) in G.edges:
+            G[u][v]["norm_weight"] = round((G[u][v]["weight"] / total_weight), 5)
+            G[u][v]["distance"] = round(1 / (G[u][v]["weight"]), 5)
+            G[u][v]["norm_distance"] = round(1 / (G[u][v]["norm_weight"] ), 5)
+    except:
+        G = nx.Graph()
+        G.clear()
     return G
 
 def draw_2d_network(networkx_object):
@@ -182,7 +190,7 @@ def draw_2d_network(networkx_object):
             ncenter=n
             dmin=d
     p =nx.single_source_shortest_path_length(networkx_object, ncenter)
-    adjc= [len(one_adjc) for one_adjc in list((nx.generate_adjlist(networkx_object)))]
+    adjc= list(dict(networkx_object.degree()).values())
     middle_node_trace = go.Scatter(
         x=[],
         y=[],
@@ -250,7 +258,7 @@ def draw_2d_network(networkx_object):
             ###showscale=True,
             showscale=False, ### change to see scale
             colorscale='Greys',
-            reversescale=True,
+            #reversescale=True,
             color=[],
             size=7,
             colorbar=dict(
@@ -300,7 +308,7 @@ def draw_3d_network(networkx_object):
     weight_list = [int(float(weight[2])) for weight in list(networkx_object.edges.data("weight"))]
     labels= list(networkx_object.nodes)
     N = len(labels)
-    adjc= [len(one_adjc) for one_adjc in list((nx.generate_adjlist(networkx_object)))] ### instead of "group"
+    adjc= list(dict(networkx_object.degree()).values())
     pos_3d=nx.spring_layout(networkx_object, weight="weight", dim=3)
     nx.set_node_attributes(networkx_object, pos_3d, "pos_3d")
     layt = [list(array) for array in pos_3d.values()]
