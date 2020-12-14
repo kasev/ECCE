@@ -83,6 +83,29 @@ def extract_ego_network_data(ego_network, term):
         ego_network_data_complete.append([tup[0], tup[1], int(tup[2]), round(1 / int(tup[2]), 5)])
     return ego_network_data_complete
 
+def get_nn(source_network, source_node, per_level=5):
+    return [(source_node, n[0]) for n in sorted(source_network[source_node].items(), key=lambda edge: edge[1]['weight'], reverse=True)][:per_level]
+
+
+def construct_association_network(source_network, source_term, per_level=5):
+    assoc_edges = [] 
+    assoc_edges.extend(get_nn(source_network, source_term, per_level))
+    neighbors = [e[1] for e in assoc_edges]
+    for nn in neighbors:
+        assoc_edges.extend(get_nn(network_sentences, nn))
+
+    assoc_network = source_network.copy(as_view=False)
+    for edge in assoc_network.edges():
+        if edge not in assoc_edges:
+            if (edge[1],edge[0]) not in assoc_edges:
+                edges_to_remove.append(edge)
+    assoc_network.remove_edges_from(edges_to_remove)
+    isolates = nx.isolates(assoc_network)
+    assoc_network.remove_nodes_from([n for n in isolates])
+    return assoc_network
+
+
+
 def network_from_lemmata(lemmata_list, weight_threshold=0.1):
     '''From a list of words'''
     #lemmata_list = [lemma for lemma in lemmata_list if lemma != "εἰμί"]
@@ -295,8 +318,8 @@ def draw_2d_network(networkx_object):
             showlegend=False,
             hovermode='closest',
             margin=dict(b=10,l=10,r=10, t=10),
-            xaxis=dict(showgrid=False, zeroline=False, showticklabels=False),
-            yaxis=dict(showgrid=False, zeroline=False, showticklabels=False)
+            xaxis=dict(range=[-1.1, 1.15], showgrid=False, zeroline=False, showticklabels=False),
+            yaxis=dict(range=[-1.1, 1.05], showgrid=False, zeroline=False, showticklabels=False)
             ))
     return fig
 
