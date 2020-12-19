@@ -92,9 +92,10 @@ def construct_association_network(source_network, source_term, per_level=5):
     assoc_edges.extend(get_nn(source_network, source_term, per_level))
     neighbors = [e[1] for e in assoc_edges]
     for nn in neighbors:
-        assoc_edges.extend(get_nn(network_sentences, nn))
+        assoc_edges.extend(get_nn(source_network, nn))
 
     assoc_network = source_network.copy(as_view=False)
+    edges_to_remove = []
     for edge in assoc_network.edges():
         if edge not in assoc_edges:
             if (edge[1],edge[0]) not in assoc_edges:
@@ -138,7 +139,7 @@ def network_object_from_bigrams(bigrams_list, weight_threshold):
         total_weight = sum([int(n) for n in nx.get_edge_attributes(G, "weight").values()])
         weights = sorted([int(n) for n in nx.get_edge_attributes(G, "weight").values()], reverse=True)
         index_position = int(len(weights) * weight_threshold)
-        minimal_weight_value = 2
+        minimal_weight_value = 1
         edges_to_remove = []
         for edge in G.edges:
             if G[edge[0]][edge[1]]["weight"] < minimal_weight_value:
@@ -318,8 +319,8 @@ def draw_2d_network(networkx_object):
             showlegend=False,
             hovermode='closest',
             margin=dict(b=10,l=10,r=10, t=10),
-            xaxis=dict(range=[-1.1, 1.15], showgrid=False, zeroline=False, showticklabels=False),
-            yaxis=dict(range=[-1.1, 1.05], showgrid=False, zeroline=False, showticklabels=False)
+            xaxis=dict(range=[-1.15, 1.05], showgrid=False, zeroline=False, showticklabels=False),
+            yaxis=dict(range=[-1.15, 1.05], showgrid=False, zeroline=False, showticklabels=False)
             ))
     return fig
 
