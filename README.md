@@ -8,10 +8,9 @@
 
 ---
 ## Authors
-* Petra Hermankova [![](https://orcid.org/sites/default/files/images/orcid_16x16.png)](https://orcid.org/0000-0002-6349-0540), SDAM project, petra@ancientsocialcomplexity.org
-* [Name], [ORCID], [Institution], [email]
-* [Name], [ORCID], [Institution], [email]
-* [Name], [ORCID], [Institution], [email]
+* Vojtěch Kaše
+* Nina Nikki
+* Tomáš Glomb
 
 ## License
 CC-BY-SA 4.0, see attached License.md
