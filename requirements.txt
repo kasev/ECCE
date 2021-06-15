@@ -1,13 +1,10 @@
+sddk>=3.0
+
 pandas
 nltk
 gensim
 networkx
 scikit-learn
-kaleido
 
 plotly
 seaborn
-gspread
-gspread_dataframe
-
-sddk
