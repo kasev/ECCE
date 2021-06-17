@@ -195,7 +195,7 @@ def network_from_sentences(sentences, weight_threshold=0.1):
         G.clear()
     return G
 
-def draw_2d_network(networkx_object):
+def draw_2d_network(networkx_object, width=500, height=500, fontsize=14):
     '''take networkX object and draw it'''
     pos_2d=nx.kamada_kawai_layout(networkx_object, weight="weight_norm")
     nx.set_node_attributes(networkx_object, pos_2d, "pos_2d")
@@ -235,19 +235,19 @@ def draw_2d_network(networkx_object):
         x=[], y=[],
         #hoverinfo='none',
         mode='lines',
-        line=dict(width=1,color="#000000"),
+        line=dict(width=4,color="#000000"),
         )
     edge_trace2 = go.Scatter(
         x=[],y=[],
         #hoverinfo='none',
         mode='lines',
-        line=dict(width=0.7,color="#404040"),
+        line=dict(width=2,color="#404040"),
         )
     edge_trace3 = go.Scatter(
         x=[], y=[],
         #hoverinfo='none',
         mode='lines',
-        line=dict(width=0.5,color="#C0C0C0"),
+        line=dict(width=1,color="#C0C0C0"),
         )
     best_5percent_norm_weight = sorted(list(networkx_object.edges.data("norm_weight")), key=lambda x: x[2], reverse=True)[int((len(networkx_object.edges.data("norm_weight")) / 100) * 5)][2]
     best_20percent_norm_weight = sorted(list(networkx_object.edges.data("norm_weight")), key=lambda x: x[2], reverse=True)[int((len(networkx_object.edges.data("norm_weight")) / 100) * 20)][2]
@@ -275,6 +275,7 @@ def draw_2d_network(networkx_object):
         #name=[],
         text=[],
         textposition='bottom center',
+        textfont_size=fontsize,
         mode='markers+text',
         hovertext=adjc,
         hoverinfo='text',
@@ -284,14 +285,14 @@ def draw_2d_network(networkx_object):
             colorscale='Greys',
             #reversescale=True,
             color=[],
-            size=7,
+            size=15,
             colorbar=dict(
-                thickness=15,
+                thickness=30,
                 title='degree',
                 xanchor='left',
                 titleside='right'
                 ),
-            line=dict(width=1)
+            line=dict(width=1.5)
             )
         )
 
@@ -312,8 +313,8 @@ def draw_2d_network(networkx_object):
         layout=go.Layout(
             plot_bgcolor='rgba(0,0,0,0)',
             autosize=False,
-            width=500,
-            height=500,
+            width=width,
+            height=height,
             #title=file_name,
             titlefont=dict(size=16),
             showlegend=False,
