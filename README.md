@@ -3,8 +3,9 @@
 ---
 
 ## Purpose
-This repository serves as a supplementary material for the article "Righteousness in Early Christian Literature: Distant Reading and Textual Networks", to be published in *Annali di storia dell’esegesi
-*. It contains scripts, data and figures. The scripts are in Python 3 programming language and mainly have a form of Jupyter notebooks. All our analyses aim at being fully reproducible and we invite other scholars to reuse our code and data for their analyses.   
+This repository serves as a supplementary material for the article "Righteousness in Early Christian Literature: Distant Reading and Textual Networks", published in *Annali di storia dell’esegesi*. 
+
+It contains scripts, data and figures. The scripts are in Python 3 programming language and mainly have a form of Jupyter notebooks. All our analyses aim at being fully reproducible and we invite other scholars to reuse our code and data for their analyses. If you reuse the code, please cite the article above.
 
 ---
 ## Authors
