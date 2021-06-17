@@ -1,3 +1,5 @@
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.4972801.svg)](https://doi.org/10.5281/zenodo.4972801)
+
 #  ECCE_DIK - article supplementary
 
 ---
@@ -5,7 +7,12 @@
 ## Purpose
 This repository serves as a supplementary material for the article "Righteousness in Early Christian Literature: Distant Reading and Textual Networks", published in *Annali di storia dell’esegesi*. 
 
-It contains scripts, data and figures. The scripts are in Python 3 programming language and mainly have a form of Jupyter notebooks. All our analyses aim at being fully reproducible and we invite other scholars to reuse our code and data for their analyses. If you reuse the code, please, cite the article above.
+It contains scripts, data and figures. The scripts are in Python 3 programming language and mainly have a form of Jupyter notebooks. All our analyses aim at being fully reproducible and we invite other scholars to reuse our code and data for their analyses. If you reuse the code, please, use the citation below and refer to the article.
+---
+
+## Citation
+
+Kaše, V., Nikki, N., and Glomb, T. (2021). ECCE_DIK: (Version v1.2). Zenodo. http://doi.org/10.5281/zenodo.4972801
 
 ---
 ## Authors
