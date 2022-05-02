@@ -4,14 +4,7 @@ VENVNAME=ecce_venv
 
 python3 -m venv $VENVNAME
 source $VENVNAME/bin/activate
-pip install --upgrade pip
+ecce_venv/bin/python -m pip install --upgrade pip
+ecce_venv/bin/python -m pip install -r requirements.txt
 
-pip install ipython
-pip install jupyter
-
-python -m ipykernel install --user --name=$VENVNAME
-
-test -f requirements.txt && pip install -r requirements.txt
-
-deactivate
-echo "build $VENVNAME"
+ecce_venv/bin/python -m ipykernel install --user --name=$VENVNAME

@@ -27,8 +27,8 @@ CC-BY-SA 4.0, see attached License.md
 # How to use this repository
 
 * download or clone the repository
-* create virtual environment and connect to it using the first two executible cells in `1_DATA_OVERVIEW.ipynb`
-* in all jupyter notebooks, always check that you are connected to the `ecce_venv` kernel
+* in terminal, move to the root of the repository and create virtual environment by running `bash create_ecce_venv.sh` 
+* in the jupyter notebooks, always check that you are connected to the `ecce_venv` kernel
 * (alternatively, if you do not wish to use the virtual environment, make sure that you have installed all required python packages within the `requirements.txt` file: `pip install -r requiremnts.txt`)
 
 ---
