@@ -1,5 +1,4 @@
 #!/usr/bin/env bash
-
 VENVNAME=ecce_venv
 
 python3 -m venv $VENVNAME
